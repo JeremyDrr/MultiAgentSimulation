@@ -9,10 +9,12 @@ import java.util.*;
 
 public class Distance {
 
-    public static List<String> findShortestPath(int[] startCoordinates, int[] endCoordinates, int[][] map) {
-        List<int[]> grid = new ArrayList<>();
-        for (int[] row : map) {
-            grid.add(Arrays.copyOf(row, row.length));
+    public static List<String> findShortestPath(int[] startCoordinates, int[] endCoordinates, List<List<String>> map) {
+
+        List<List<String>> grid = new ArrayList<>();
+        for (List<String> row : map) {
+            List<String> newRow = new ArrayList<>(row);
+            grid.add(newRow);
         }
 
         int distanceFromTop = startCoordinates[0];
@@ -28,42 +30,28 @@ public class Distance {
 
         queue.add(location);
 
+        // Loop through the grid searching for the goal
         while (!queue.isEmpty()) {
+            // Take the first location off the queue
             Map<String, Object> currentLocation = queue.poll();
 
-            Map<String, Object> newLocation = exploreInDirection(currentLocation, endCoordinates, "north", grid);
-            if ("goal".equalsIgnoreCase((String) newLocation.get("status"))) {
-                return (List<String>) newLocation.get("path");
-            } else if ("valid".equalsIgnoreCase((String) newLocation.get("status"))) {
-                queue.add(newLocation);
-            }
-
-            newLocation = exploreInDirection(currentLocation, endCoordinates, "east", grid);
-            if ("goal".equalsIgnoreCase((String) newLocation.get("status"))) {
-                return (List<String>) newLocation.get("path");
-            } else if ("valid".equalsIgnoreCase((String) newLocation.get("status"))) {
-                queue.add(newLocation);
-            }
-
-            newLocation = exploreInDirection(currentLocation, endCoordinates, "south", grid);
-            if ("goal".equalsIgnoreCase((String) newLocation.get("status"))) {
-                return (List<String>) newLocation.get("path");
-            } else if ("valid".equalsIgnoreCase((String) newLocation.get("status"))) {
-                queue.add(newLocation);
-            }
-
-            newLocation = exploreInDirection(currentLocation, endCoordinates, "west", grid);
-            if ("goal".equalsIgnoreCase((String) newLocation.get("status"))) {
-                return (List<String>) newLocation.get("path");
-            } else if ("valid".equalsIgnoreCase((String) newLocation.get("status"))) {
-                queue.add(newLocation);
+            // Explore in each direction
+            String[] directions = {"north", "east", "south", "west"};
+            for (String direction : directions) {
+                Map<String, Object> newLocation = exploreInDirection(currentLocation, endCoordinates, direction, grid);
+                if ("goal".equalsIgnoreCase((String) newLocation.get("status"))) {
+                    return (List<String>) newLocation.get("path");
+                } else if ("valid".equalsIgnoreCase((String) newLocation.get("status"))) {
+                    queue.add(newLocation);
+                }
             }
         }
 
-        return Collections.emptyList(); // No valid path found
+        // No valid path found
+        return Collections.emptyList();
     }
 
-    private static Map<String, Object> exploreInDirection(Map<String, Object> currentLocation, int[] endCoordinates, String direction, List<int[]> grid) {
+    private static Map<String, Object> exploreInDirection(Map<String, Object> currentLocation, int[] endCoordinates, String direction, List<List<String>> grid) {
 
         List<String> newPath = new ArrayList<>((List<String>) currentLocation.get("path"));
         newPath.add(direction);
@@ -71,7 +59,7 @@ public class Distance {
         int dft = (int) currentLocation.get("distanceFromTop");
         int dfl = (int) currentLocation.get("distanceFromLeft");
 
-        switch (direction) {
+        switch (direction.toLowerCase()) {
             case "north":
                 dft -= 1;
                 break;
@@ -92,30 +80,34 @@ public class Distance {
         newLocation.put("path", newPath);
         newLocation.put("status", "Unknown");
 
-        String status = locationStatus(newLocation, endCoordinates, grid);
-        newLocation.put("status", status);
+        newLocation.put("status", locationStatus(newLocation, endCoordinates, grid));
 
-        if ("valid".equalsIgnoreCase(status)) {
-            grid.get(dft)[dfl] = 'V'; // Mark as visited
+        // If this new location is valid, mark it as 'V' (Visited)
+        if ("valid".equalsIgnoreCase((String) newLocation.get("status"))) {
+            grid.get(dft).set(dfl, "V");
         }
 
         return newLocation;
     }
 
-    private static String locationStatus(Map<String, Object> location, int[] endCoordinates, List<int[]> grid) {
+    private static String locationStatus(Map<String, Object> location, int[] endCoordinates, List<List<String>> grid) {
 
         int gridSize = grid.size();
         int dft = (int) location.get("distanceFromTop");
         int dfl = (int) location.get("distanceFromLeft");
 
         if (dfl < 0 || dfl >= gridSize || dft < 0 || dft >= gridSize) {
+            // location is not on the grid--return false
             return "invalid";
         } else if (dft == endCoordinates[0] && dfl == endCoordinates[1]) {
             return "goal";
-        } else if ("HAOV".contains(String.valueOf(grid.get(dft)[dfl]))) {
+        } else if ("HAOV".contains(grid.get(dft).get(dfl))) {
+            // location is either an obstacle or has been visited
             return "blocked";
         } else {
             return "valid";
         }
     }
+
+
 }

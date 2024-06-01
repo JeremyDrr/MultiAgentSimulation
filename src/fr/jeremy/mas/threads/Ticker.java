@@ -35,16 +35,21 @@ public class Ticker {
         System.out.println(threadName + ": Tick");
     }
 
-    public synchronized void action(String threadName) throws InterruptedException {
-        if(!ticked || (agentsCounter < environment.getAgents().size())){
-            System.out.println(threadName + ": Wait for tick.");
-            wait();
+    public synchronized void action(String threadName){
+        try{
+            if(!ticked || (agentsCounter < environment.getAgents().size())){
+                System.out.println(threadName + ": Wait for tick.");
+                wait();
+            }
+
+            agentsCounter++;
+            if(agentsCounter == environment.getAgents().size()){
+                ticked = false;
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
         }
 
-        agentsCounter++;
-        if(agentsCounter == environment.getAgents().size()){
-            ticked = false;
-        }
-        System.out.println(threadName + ": Action");
     }
 }

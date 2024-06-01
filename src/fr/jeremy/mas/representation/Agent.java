@@ -10,9 +10,18 @@ public class Agent{
     public String color;
     public Tile tile;
 
+    public boolean isPrincipal() {
+        return principal;
+    }
+
+    public void setPrincipal(boolean principal) {
+        this.principal = principal;
+    }
+
     public Agent(String color, String name){
         this.color = color;
         this.name = name;
+
     }
 
     public int getXPosition() {

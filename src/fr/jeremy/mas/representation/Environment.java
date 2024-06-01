@@ -255,18 +255,17 @@ public class Environment {
 
     private boolean canMoveTo(Map<String, Integer> position) {
 
-        int x = position.getOrDefault("x", -1);  // Handle potential missing key
-        int y = position.getOrDefault("y", -1);  // Handle potential missing key
+        int x = position.getOrDefault("x", 0);  // Handle potential missing key
+        int y = position.getOrDefault("y", 0);  // Handle potential missing key
 
         // Check for valid grid coordinates and allowed characters
-        return (x >= 0 && x < gridHeight &&
-                y >= 0 && y < gridWidth &&
+        return (x >= 0 && x <= gridHeight &&
+                y >= 0 && y <= gridWidth &&
                 !map.get(x).contains("H") &&
-                !map.get(x).contains("O") &&
-                !map.get(x).contains("A"));
+                !map.get(x).contains("O"));
     }
 
-    public synchronized void initialiseMap() {
+    public void initialiseMap() {
 
         map = new ArrayList<>();
 
@@ -280,26 +279,27 @@ public class Environment {
         }
 
         // Mark agents
-        for (int i = 0; i < agents.size(); i++) {
-            map.get(agents.get(i).xPosition).set(agents.get(i).yPosition, "A");
+        for (Agent agent : agents) {
+            map.get(agent.xPosition).set(agent.yPosition, "A");
+
         }
 
         // Mark tiles
-        for (int i = 0; i < tiles.size(); i++) {
-            for (int j = 0; j < tiles.get(i).numberOfTiles; j++) {
-                String currentCell = map.get(tiles.get(i).xPosition).get(tiles.get(i).yPosition);
-                map.get(tiles.get(i).xPosition).set(tiles.get(i).yPosition, currentCell + "T");
+        for (Tile tile : tiles) {
+            for (int j = 0; j < tile.numberOfTiles; j++) {
+                String currentCell = map.get(tile.xPosition).get(tile.yPosition);
+                map.get(tile.xPosition).set(tile.yPosition, currentCell + "T");
             }
         }
 
         // Mark holes
-        for (int i = 0; i < holes.size(); i++) {
-            map.get(holes.get(i).xPosition).set(holes.get(i).yPosition, "H");
+        for (Hole hole : holes) {
+            map.get(hole.xPosition).set(hole.yPosition, "H");
         }
 
         // Mark obstacles
-        for (int i = 0; i < obstacles.size(); i++) {
-            map.get(obstacles.get(i).xPosition).set(obstacles.get(i).yPosition, "O");
+        for (Obstacle obstacle : obstacles) {
+            map.get(obstacle.xPosition).set(obstacle.yPosition, "O");
         }
     }
 
@@ -347,5 +347,21 @@ public class Environment {
 
     public Generator getGenerator() {
         return generator;
+    }
+
+    public int getGridHeight() {
+        return gridHeight;
+    }
+
+    public void setGridHeight(int gridHeight) {
+        this.gridHeight = gridHeight;
+    }
+
+    public int getGridWidth() {
+        return gridWidth;
+    }
+
+    public void setGridWidth(int gridWidth) {
+        this.gridWidth = gridWidth;
     }
 }

@@ -5,6 +5,7 @@ import fr.jeremy.mas.representation.*;
 import fr.jeremy.mas.threads.*;
 
 import javax.naming.ConfigurationException;
+import java.io.File;
 import java.util.*;
 
 public class TileWorldService {
@@ -17,9 +18,13 @@ public class TileWorldService {
             Environment environment = new Environment();
             List<String> configurationVariables = new ArrayList<String>();
 
-            Scanner scanner = new Scanner(configuration);
+            File myFile = new File(configuration);
+
+            Scanner scanner = new Scanner(myFile);
+
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
+
                 configurationVariables.addAll(Arrays.asList(line.split("\\s+")));
             }
 
@@ -120,7 +125,7 @@ public class TileWorldService {
 
     public void initialise(Environment environment) throws InterruptedException {
 
-        Thread.sleep(5000);
+        Thread.sleep(1000);
         Ticker ticker = new Ticker(environment, this);
 
         // Message Boxes
@@ -129,8 +134,9 @@ public class TileWorldService {
             agentsMessageBox[i] = new MessageBox(environment.agents.get(i).name, environment.numberOfAgents, this);
         }
         MessageBox environmentMessageBox = new MessageBox("environment", environment.numberOfAgents, this);
-        MessageBox negotiationMessageBox = new MessageBox("principal", environment.numberOfAgents, this);
+        MessageBox negotiationMessageBox = new MessageBox("negotiation", environment.numberOfAgents, this);
 
+        //TODO: And here
         // Create agents and start them
         List<AgentThread> agentThreads = new ArrayList<>();
         for(int i = 0; i < environment.agents.size(); i++){
@@ -146,7 +152,7 @@ public class TileWorldService {
         }
 
         // Start negotiation thread
-        NegotiationThread negotiationThread = new NegotiationThread(agentsMessageBox, negotiationMessageBox, environment, ticker, this, "principal");
+        NegotiationThread negotiationThread = new NegotiationThread(agentsMessageBox, negotiationMessageBox, environment, ticker, this, "negotiation");
         negotiationThread.start();
 
         // Start environment thread
@@ -160,53 +166,42 @@ public class TileWorldService {
 
     public void updateConsole(String message) {
 
-        long currentTimeMillis = System.currentTimeMillis();
-        String logMessage = currentTimeMillis + " -> " + message;
-        System.out.println(logMessage);
+        System.out.println(message);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("message", logMessage);
+        data.put("message", message);
 
     }
 
     public void updateTileWorld(Environment environment) {
 
         for(Tile tile : environment.getTiles()){
-            System.out.println("Updating Tile: " + tile);
+            System.out.println("Updating Tile: " + tile.numberOfTiles + " tiles left");
         }
 
         for(Hole hole : environment.getHoles()){
-            System.out.println("Updating Hole: " + hole);
+            System.out.println("Updating Hole: " + hole.depth + " tiles deep");
         }
 
         for(Agent agent : environment.getAgents()){
-            System.out.println("Updating Agent: " + agent);
+            System.out.println("Updating Agent: " + agent.name);
         }
 
         for (Obstacle obstacle : environment.getObstacles()){
-            System.out.println("Updating Obstacle: " + obstacle);
+            System.out.println("Updating Obstacle at location " + obstacle.getXPosition() + " " + obstacle.getYPosition());
         }
 
         if(environment.generator != null){
             Generator generator = environment.getGenerator();
-            System.out.println("Updating generator: " + generator);
+            System.out.println("Updating generator: " + generator.generatorEndTime);
         }
 
-        System.out.println("Environment updated. Current state: ");
-        System.out.println("Agents: " + environment.getAgents());
-        System.out.println("Tiles: " + environment.getTiles());
-        System.out.println("Holes: " + environment.getHoles());
-        System.out.println("Obstacles: " + environment.getObstacles());
     }
 
     public void endGame(String message) {
-        long currentTimeMillis = System.currentTimeMillis();
-        System.out.println(currentTimeMillis + " -> " + message);
 
-        // Replace 'event(key: "endGame", for: 'browser', data: data)' with your event sending method call
-        // This might involve passing the event key ("endGame"), target ('browser'), and the message data.
+        System.out.println(message);
 
-        // Assuming you don't need further processing after sending the event, terminate the program execution.
         System.exit(0);
     }
 

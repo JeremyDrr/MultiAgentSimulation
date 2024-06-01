@@ -5,6 +5,8 @@ import fr.jeremy.mas.communication.Message;
 import fr.jeremy.mas.communication.MessageBox;
 import fr.jeremy.mas.utils.TileWorldService;
 
+import java.util.List;
+
 public class EnvironmentThread extends Thread {
 
     public String name;
@@ -33,11 +35,7 @@ public class EnvironmentThread extends Thread {
 
             long startTime = System.currentTimeMillis() % 1000;
             ticker.tick(this.name);
-            try {
-                environmentMessageBox.checkMessageList(this.name);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            environmentMessageBox.checkMessageList(this.name);
             processMessageList();
             tileWorldService.updateTileWorld(environment);
             long endTime = System.currentTimeMillis() % 1000 - startTime;
@@ -50,6 +48,7 @@ public class EnvironmentThread extends Thread {
                 }
             }
             environment.remainingTime -= environment.tickTime;
+
         }
 
         System.out.println(this.name + ": ended");
@@ -71,10 +70,8 @@ public class EnvironmentThread extends Thread {
 
             Message confirmation = new Message("environment", message.operation.code);
             if(environment.executeOperation(message.sender, message.operation)) {
-                // send success message
                 confirmation.successCode = "SUCCESS";
             } else {
-                // send error message
                 confirmation.successCode = "ERROR";
             }
 

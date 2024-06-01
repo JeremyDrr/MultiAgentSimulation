@@ -1,5 +1,6 @@
 package fr.jeremy.mas.threads;
 
+import fr.jeremy.mas.representation.Agent;
 import fr.jeremy.mas.representation.Environment;
 import fr.jeremy.mas.representation.Hole;
 import fr.jeremy.mas.representation.Tile;
@@ -7,13 +8,9 @@ import fr.jeremy.mas.communication.Message;
 import fr.jeremy.mas.communication.MessageBox;
 import fr.jeremy.mas.utils.Distance;
 import fr.jeremy.mas.utils.TileWorldService;
-import fr.jeremy.mas.representation.Agent;
 import fr.jeremy.mas.communication.Operation;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AgentThread extends Thread {
 
@@ -33,7 +30,7 @@ public class AgentThread extends Thread {
         this.environment = environment;
         this.ticker = ticker;
         this.tileWorldService = tileWorldService;
-        tileWorldService.updateConsole("${agentName}: started");
+        tileWorldService.updateConsole(this.name + ": started");
     }
 
 
@@ -42,78 +39,58 @@ public class AgentThread extends Thread {
         while(ticker.running()){
 
             ticker.action(this.name);
-            tileWorldService.updateConsole(this.name + ": Action");
 
-            Map<String, List<Map<String, Object>>> distances = computeDistances(getPosition());
+            Map<String, Integer> position = getPosition();
+            Map<String, List<Map<String, Object>>> distances = computeDistances(position);
 
             Message negotiationMessage = negotiate(distances);
             notifyPrincipal(negotiationMessage);
+
             negotiationMessageBox.checkNegotiationMessageList(this.name);
             negotiationMessageBox.isMessageListProcessed();
-
             processMessageList();
 
             environmentMessageBox.checkMessageList(this.name);
             environmentMessageBox.isMessageListProcessed();
-
             processMessageList();
+
+            displayGrid();
+
         }
 
         System.out.println(this.name + ": ended");
     }
 
-    private Map<String, Integer> getPosition() {
-        for (Agent agent : environment.agents) {
-            if (this.name.equalsIgnoreCase(agent.name)) {
+    //TODO: Might be the reason of crash
+    private synchronized Map<String, Integer> getPosition() {
+        String threadName = this.getName();
+        System.out.println("Thread name: " + threadName);
+
+        for (Agent agent : environment.getAgents()) {
+            String agentName = agent.getName();
+            System.out.println("Agent name: " + agentName);
+
+            if (threadName.equalsIgnoreCase(agentName)) {
                 Map<String, Integer> position = new HashMap<>();
-                position.put("x", agent.xPosition);
-                position.put("y", agent.yPosition);
+                position.put("x", agent.getXPosition());
+                position.put("y", agent.getYPosition());
+
+                System.out.println("Success! Agent position found for thread: " + threadName);
                 return position;
             }
         }
+
+        System.out.println("Error: Agent position not found for thread: " + threadName);
         return null;
     }
 
-    private Map<String, List<Map<String, Object>>> computeDistances(Map<String, Integer> position) {
-
-        List<Map<String, Object>> distanceToHoles = new ArrayList<>();
-        for (Hole hole : environment.holes) {
-            int distance = Distance.findShortestPath(new int[]{position.get("x"), position.get("y")}, new int[]{hole.xPosition, hole.yPosition}, environment.map);
-            Map<String, Object> holeDistance = new HashMap<>();
-            holeDistance.put("x", hole.xPosition);
-            holeDistance.put("y", hole.yPosition);
-            holeDistance.put("distance", distance);
-            distanceToHoles.add(holeDistance);
-        }
-
-        List<Map<String, Object>> distanceToTiles = new ArrayList<>();
-        for (Tile tile : environment.tiles) {
-            int distance = Distance.findShortestPath(new int[]{position.get("x"), position.get("y")}, new int[]{tile.xPosition, tile.yPosition}, environment.map);
-            Map<String, Object> tileDistance = new HashMap<>();
-            tileDistance.put("x", tile.xPosition);
-            tileDistance.put("y", tile.yPosition);
-            tileDistance.put("distance", distance);
-            distanceToTiles.add(tileDistance);
-        }
-
-        Map<String, List<Map<String, Object>>> distances = new HashMap<>();
-        distances.put("holes", distanceToHoles);
-        distances.put("tiles", distanceToTiles);
-
-        return distances;
-    }
 
     private void notifyPrincipal(Message message) {
         negotiationMessageBox.addMessage(message);
     }
 
-    /**
-     * Send message to the environment.
-     * @param message - message to send.
-     */
     private void notifyEnvironment(Message message) {
         environmentMessageBox.addMessage(message);
-        return;
     }
 
     private synchronized void processMessageList() {
@@ -154,36 +131,34 @@ public class AgentThread extends Thread {
     }
 
 
-
-
     /* --- OPERATIONS --- */
 
     private Message move(Map<String, Integer> newPosition) {
-        System.out.println("move(): " + this.name + ": position=" + newPosition);
+        System.out.println("MOVE: " + this.name + ": position=" + newPosition);
         Message message = new Message(this.name, "OPERATION_SUCCESS_CODE");
-        Operation operation = new Operation("MOVE", newPosition);
+        Operation operation = new Operation("MOVE", String.valueOf(newPosition));
         message.setOperation(operation);
         return message;
     }
 
     private Message pickTile(Map<String, Integer> position) {
-        System.out.println("pickTile(): " + this.name + ": position=" + position);
+        System.out.println("PICK: " + this.name + ": position=" + position);
         Message message = new Message(this.name, "OPERATION_SUCCESS_CODE");
-        Operation operation = new Operation("PICK", position);
+        Operation operation = new Operation("PICK", String.valueOf(position));
         message.setOperation(operation);
         return message;
     }
 
     private Message dropTile(Map<String, Integer> position) {
-        System.out.println("dropTile(): " + this.name + ": position=" + position);
+        System.out.println("DROP: " + this.name + ": position=" + position);
         Message message = new Message(this.name, "OPERATION_SUCCESS_CODE");
-        Operation operation = new Operation("DROP", position);
+        Operation operation = new Operation("DROP", String.valueOf(position));
         message.setOperation(operation);
         return message;
     }
 
     private Message useTile(String direction) {
-        System.out.println("useTile(): " + this.name + ": direction=" + direction);
+        System.out.println("USE: " + this.name + ": direction=" + direction);
         Message message = new Message(this.name, "OPERATION_SUCCESS_CODE");
         Operation operation = new Operation("USE", direction);
         message.setOperation(operation);
@@ -191,19 +166,67 @@ public class AgentThread extends Thread {
     }
 
     private Message transferPoints(String toAgent, Integer transferPoints) {
-        System.out.println("transferPoints(): " + this.name + ": toAgent=" + toAgent + "; transferPoints=" + transferPoints);
+        System.out.println("TRANSFER: " + this.name + ": toAgent=" + toAgent + "; transferPoints=" + transferPoints);
         Message message = new Message(this.name, "OPERATION_SUCCESS_CODE");
         Operation operation = new Operation("TRANSFER", toAgent, transferPoints);
         message.setOperation(operation);
         return message;
     }
 
-    private Message negotiate(Map<String, Object> distances) {
-        System.out.println("negotiate(): " + this.name + ": distances=" + distances);
+    private Message negotiate(Map<String, List<Map<String, Object>>> distances) {
+        System.out.println("NEGOTIATE: " + this.name + ": distances=" + distances);
         Message message = new Message(this.name, "NEGOTIATION_RESULT");
-        Operation operation = new Operation("NEGOTIATION", distances);
+        Operation operation = new Operation("NEGOTIATION", String.valueOf(distances));
         message.setOperation(operation);
         return message;
+    }
+
+    private Map<String, List<Map<String, Object>>> computeDistances(Map<String, Integer> position) {
+
+        List<Map<String, Object>> distanceToHoles = new ArrayList<>();
+        for (Hole hole : environment.getHoles()) {
+
+            List<String> distance = Distance.findShortestPath(
+                    new int[]{position.get("x"), position.get("y")},
+                    new int[]{hole.getXPosition(), hole.getYPosition()},
+                    environment.getMap());
+
+            Map<String, Object> distanceInfo = new HashMap<>();
+            distanceInfo.put("x", hole.getXPosition());
+            distanceInfo.put("y", hole.getYPosition());
+            distanceInfo.put("distance", distance);
+            distanceToHoles.add(distanceInfo);
+        }
+
+        List<Map<String, Object>> distanceToTiles = new ArrayList<>();
+        for (Tile tile : environment.getTiles()) {
+
+            List<String> distance = Distance.findShortestPath(
+                    new int[]{position.get("x"), position.get("y")},
+                    new int[]{tile.getXPosition(), tile.getYPosition()},
+                    environment.getMap());
+
+            Map<String, Object> distanceInfo = new HashMap<>();
+            distanceInfo.put("x", tile.getXPosition());
+            distanceInfo.put("y", tile.getYPosition());
+            distanceInfo.put("distance", distance);
+            distanceToTiles.add(distanceInfo);
+        }
+
+        Map<String, List<Map<String, Object>>> distances = new HashMap<>();
+        distances.put("holes", distanceToHoles);
+        distances.put("tiles", distanceToTiles);
+
+        return distances;
+    }
+
+    private void displayGrid(){
+
+        List<List<String>> grid = environment.getMap();
+        for (int i = 0; i < grid.size(); i++) {
+            System.out.println(environment.map.get(i));
+        }
+
     }
 
 }
